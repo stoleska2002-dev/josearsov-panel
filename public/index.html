@@ -733,13 +733,11 @@ function gauge(p,l,t){var c=251.3,d=c*Math.min(100,Math.max(0,p))/100;return '<d
 function dcard(id,t){return '<div class="dc" id="'+id+'"><div class="dt"><span>'+t+'</span><span class="dx"></span></div><div class="db"></div></div>'}
 var TI={add:'<svg viewBox="0 0 48 48" width="46" height="46" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="24" cy="14" r="8"/><path d="M8 42c0-9 7-14 16-14s16 5 16 14z"/></svg>',addr:'<svg viewBox="0 0 48 48" width="46" height="46" fill="none" stroke="#16a34a" stroke-width="2"><path d="M4 8h7l5 22h20l5-16H13"/><circle cx="19" cy="38" r="3"/><circle cx="34" cy="38" r="3"/></svg>',settings:'<svg viewBox="0 0 48 48" width="46" height="46" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="24" cy="24" r="7"/><path d="M24 4v6M24 38v6M4 24h6M38 24h6M10 10l4 4M34 34l4 4M38 10l-4 4M14 34l-4 4"/></svg>'};
 function greet(){var h=new Date().getHours(),w=h<12?'Good morning':h<18?'Good afternoon':'Good evening',n=ctx?me().name:'Jose';return w+', '+n}
-function dashHtml(){return '<div class="tiles" style="margin:0 0 20px"><button class="tile" data-go="add">'+TI.add+'<span>Add new<br>line</span></button><button class="tile" data-go="addr">'+TI.addr+'<span>Add new<br>reseller</span></button><button class="tile" data-go="settings">'+TI.settings+'<span><br>Settings</span></button></div>'+dcard('d-sys','System info')+'<div style="height:20px"></div>'+dcard('d-earn','Sales')+'<div class="g2" style="margin-top:20px">'+dcard('d-map','Live map')+dcard('d-pie','Live graph')+'</div>'}
+function dashHtml(){return '<div class="tiles" style="margin:0 0 20px"><button class="tile" data-go="add">'+TI.add+'<span>Add new<br>line</span></button><button class="tile" data-go="addr">'+TI.addr+'<span>Add new<br>reseller</span></button><button class="tile" data-go="settings">'+TI.settings+'<span><br>Settings</span></button></div>'+dcard('d-money','Collected money')+'<div style="height:20px"></div>'+dcard('d-earn','Sales')+'<div class="g2" style="margin-top:20px">'+dcard('d-map','Live map')+dcard('d-pie','Live graph')+'</div>'}
 function dsec(id,html,x){var e=$(id);if(!e)return;e.querySelector('.db').innerHTML=html;if(x!==undefined)e.querySelector('.dx').innerHTML=x}
 var DEMO='<small style="color:var(--mute);text-transform:none;letter-spacing:0">demo data</small>';
 function dashLoad(){
-  // system
-  var sysDraw=function(s,demo){dsec('d-sys','<div style="display:flex;justify-content:space-around;flex-wrap:wrap;gap:10px">'+gauge(s.disk,'Storage')+gauge(s.bw,s.bwLabel==='memory'?'Memory':'Bandwidth')+gauge(s.load,'Cluster Load')+'</div>',demo?DEMO:'')};
-  fetch('/api/system').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(s){sysDraw(s,false)}).catch(function(){sysDraw({disk:58,bw:12,load:30},true)});
+  moneyDraw();
   // MAG
   var mg=vis().filter(function(r){return r.mag}),on=mg.filter(isOn).length,tot=mg.length,off=tot-on,mx=Math.max(1,tot);
   function bar(c,n){return '<div style="height:20px;border-radius:10px;background:'+c+';width:'+Math.max(4,Math.round(n/mx*100))+'%;margin:12px 0"></div>'}
@@ -747,6 +745,23 @@ function dashLoad(){
   earnDraw();
   // activity: map + pie
   fetch('/api/activity').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(j){var by={};vis().forEach(function(r){if(r.username)by[String(r.username).toLowerCase()]=1});actDraw((j.events||[]).filter(function(e){return by[String(e.u).toLowerCase()]}),false)}).catch(function(){actDraw(ovDemo(),true)});
+}
+// ---- collected money per month ----
+var MK='rp_money_v1',money=(function(){try{return JSON.parse(localStorage.getItem(MK))||{}}catch(e){return{}}})();
+function saveMoney(){try{localStorage.setItem(MK,JSON.stringify(money))}catch(e){}}
+var MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function mkey(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)}
+function eur(v){return '€'+(Math.round(v*100)/100).toLocaleString('en-GB')}
+function moneyDraw(){
+  var now=new Date(),ms=[],i;for(i=11;i>=0;i--){var d=new Date(now.getFullYear(),now.getMonth()-i,1);ms.push({k:mkey(d),l:MN[d.getMonth()],y:d.getFullYear(),v:+money[mkey(d)]||0})}
+  var cur=ms[11].v,prev=ms[10].v,yr=ms.reduce(function(a,x){return a+x.v},0),mx=Math.max(1,Math.max.apply(null,ms.map(function(x){return x.v})));
+  var W=700,H=200,bw=(W-20)/12,bars=ms.map(function(m,i){var h=Math.round((H-40)*m.v/mx),x=10+i*bw;return '<rect x="'+(x+6)+'" y="'+(H-22-h)+'" width="'+(bw-12)+'" height="'+Math.max(2,h)+'" rx="5" fill="'+(i===11?'#16a34a':'#9fd6ae')+'"><title>'+m.l+' '+m.y+': '+eur(m.v)+'</title></rect>'+(m.v?'<text x="'+(x+bw/2)+'" y="'+(H-28-h)+'" font-size="11" text-anchor="middle" fill="#3f5a48">'+Math.round(m.v)+'</text>':'')+'<text x="'+(x+bw/2)+'" y="'+(H-6)+'" font-size="11" text-anchor="middle" fill="#6f8a78">'+m.l+'</text>'}).join('');
+  var stat=function(t,v,c){return '<div style="flex:1;min-width:110px;background:var(--row);border-radius:12px;padding:12px 14px"><div style="font-size:12px;color:var(--mute)">'+t+'</div><div style="font-size:22px;font-weight:600;color:'+(c||'var(--head)')+'">'+eur(v)+'</div></div>'};
+  var opts=ms.slice().reverse().map(function(m){return '<option value="'+m.k+'">'+m.l+' '+m.y+'</option>'}).join('');
+  dsec('d-money','<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'+stat('This month',cur,'#16a34a')+stat('Last month',prev)+stat('Last 12 months',yr)+'</div><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto">'+bars+'</svg><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center"><select id="mmon" style="flex:1;min-width:120px">'+opts+'</select><input id="mamt" type="number" inputmode="decimal" step="0.01" placeholder="Amount €" style="flex:1;min-width:100px"><button type="button" class="ok" id="madd" style="padding:9px 14px;border:0;border-radius:8px;color:#fff">+ Add</button><button type="button" id="mset" style="padding:9px 14px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--head)">Set</button></div><small style="color:var(--mute)">+ Add adds the amount to the month. Set replaces the month total.</small>');
+  function val(){var v=parseFloat(String($('mamt').value).replace(',','.'));if(isNaN(v)){$('mamt').focus();return null}return v}
+  $('madd').onclick=function(){var v=val();if(v===null)return;var k=$('mmon').value;money[k]=(+money[k]||0)+v;saveMoney();log('Money added: '+eur(v)+' ('+k+')');moneyDraw()};
+  $('mset').onclick=function(){var v=val();if(v===null)return;var k=$('mmon').value;money[k]=v;saveMoney();log('Money set: '+eur(v)+' ('+k+')');moneyDraw()};
 }
 // ---- sales chart ----
 function logTime(d){var m=String(d).match(/(\d+)\/(\d+)\/(\d+),?\s*(\d+):(\d+)/);return m?new Date(+m[3],+m[2]-1,+m[1],+m[4],+m[5]).getTime():0}
@@ -793,7 +808,7 @@ function dotMap(cv,pts){ovLibs(function(ok){
   fetch(OVD.w).then(function(r){return r.json()}).then(function(w){worldG=w;go(w)}).catch(function(){go(null)});
 })}
 // ---- settings / backup ----
-var BK=['crm_contacts_v1','crm_logs_v1','crm_resellers_v1','rp_channels_v1','rp_packages_v1','rp_plans_v1','rp_credlog_v1'];
+var BK=['rp_money_v1','crm_contacts_v1','crm_logs_v1','crm_resellers_v1','rp_channels_v1','rp_packages_v1','rp_plans_v1','rp_credlog_v1'];
 function settingsHtml(){return '<div class="dc"><div class="dt"><span>Backup</span></div><p style="margin-top:0">Save all your data (lines, MAG devices, resellers, channels, bouquets, packages and credit history) to a file. Keep a copy somewhere safe.</p><button class="ok" id="bkd" style="border:0;color:#fff;padding:11px 20px;border-radius:6px">Download backup</button><div style="margin-top:22px"><label style="margin-top:0">Restore from a backup file</label><input type="file" id="bkf" accept=".json"><small id="bks" style="display:block;margin-top:6px"></small></div></div>'}
 function bindSettings(){
   $('bkd').onclick=function(){var o={};BK.forEach(function(k){try{var v=localStorage.getItem(k);if(v!=null)o[k]=v}catch(e){}});var txt=JSON.stringify({app:'resellers-panel',time:new Date().toISOString(),state:o}),nm='panel-backup-'+new Date().toISOString().slice(0,10)+'.json';
