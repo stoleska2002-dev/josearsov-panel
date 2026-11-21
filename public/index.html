@@ -357,6 +357,7 @@ $('ms').onclick=function(){
   if(data.some(function(x){return x.id!==editId&&String(x.username).toLowerCase()===un.toLowerCase()})){alert('This username already exists.');setStep(1);$('fus').focus();return}
   var o={mag:magM,mac:mac,pin:$('fpin').value.trim()||'0000',ips:ipsCur.slice(),uas:uasCur.slice(),bypassUa:$('fbua').checked,lockIsp:$('flisp').checked,isp:$('fisp').value,email:$('wem').hidden?undefined:$('fem').value.trim(),name:n,status:$('fst').value,next:$('fd').value,note:$('fnote').value.trim(),playlist:$('fpl').value.trim(),chs:getCh(),pks:getPk(),plan:+$('fplan').value||0,maxc:parseInt($('fmax').value,10)||1,exp:$('fexp').value,username:un,password:pw0||rnd(10)};
   if(o.email===undefined)delete o.email;
+  if(!magM){var old=data.filter(function(x){return x.id===editId})[0];if(!o.playlist||isAutoPl(o.playlist)||(old&&o.playlist===old.playlist&&isAutoPl(old.playlist)))o.playlist=plUrl(o)}
   if(editId){data=data.map(function(r){return r.id===editId?Object.assign({},r,o,{last:new Date().toISOString().slice(0,10)}):r})}
   else{var cost=curCost();if(ctx&&me().credits<cost){alert('Not enough credits for this package.');setStep(3);return}if(ctx){me().credits-=cost;saveR()}var id=data.reduce(function(m,r){return Math.max(m,r.id)},1000)+1;data.push(Object.assign({id:id,last:'',owner:ctx},o));if(!trialM)earn(priceOf(curPlan()),n)}
   log(editId?'Line edited: '+n:'Line added: '+n);save();closeM();render();
@@ -365,7 +366,7 @@ $('mc').onclick=closeM;
 $('m').onclick=function(e){if(e.target===$('m'))closeM()};
 var dId=null;
 function m3u(r,f){
-  var b=(r.playlist||'').trim();
+  var b=(r.playlist||'').trim()||(r.username&&r.password&&!r.mag?plUrl(r):'');
   if(!b)return 'No playlist URL saved for this contact. Edit the contact and add one.';
   b=b.replace(/\/m3u[^\/?]*(\?.*)?$/i,'').replace(/\/+$/,'');
   var p=f.split('_'),lim=parseInt($('dlim').value,10);
@@ -820,6 +821,10 @@ $('msgsend').onclick=function(){var v=$('msgi').value.trim();if(!v||msgThr==null
 $('msgi').onkeydown=function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();$('msgsend').click()}};
 window.addEventListener('storage',function(e){if(e.key===MSK){try{msgs=JSON.parse(e.newValue)||[]}catch(x){}msgBadge();if(msgThr!=null&&!$('msgc').hidden)msgDraw()}});
 setInterval(msgBadge,5000);
+// ---- M3U server / auto playlist ----
+var SRVK='rp_srv_v1';function srv(){try{return (localStorage.getItem(SRVK)||'http://rade.freeddns.org:8080').replace(/\/+$/,'')}catch(e){return 'http://rade.freeddns.org:8080'}}
+function plUrl(r){return srv()+'/playlist/'+encodeURIComponent(r.username||'')+'/'+encodeURIComponent(r.password||'')+'/m3u'}
+function isAutoPl(u){return !u||/\/playlist\/[^\/]+\/[^\/]+\/m3u[^\/]*$/i.test(u)&&u.indexOf(srv())===0}
 // ---- collected money per month ----
 var MK='rp_money_v1',money=(function(){try{return JSON.parse(localStorage.getItem(MK))||{}}catch(e){return{}}})();
 function saveMoney(){try{localStorage.setItem(MK,JSON.stringify(money))}catch(e){}}
@@ -882,9 +887,11 @@ function dotMap(cv,pts){ovLibs(function(ok){
   fetch(OVD.w).then(function(r){return r.json()}).then(function(w){worldG=w;go(w)}).catch(function(){go(null)});
 })}
 // ---- settings / backup ----
-var BK=['rp_msgs_v1','rp_money_v1','crm_contacts_v1','crm_logs_v1','crm_resellers_v1','rp_channels_v1','rp_packages_v1','rp_plans_v1','rp_credlog_v1'];
-function settingsHtml(){return '<div class="dc"><div class="dt"><span>Backup</span></div><p style="margin-top:0">Save all your data (lines, MAG devices, resellers, channels, bouquets, packages and credit history) to a file. Keep a copy somewhere safe.</p><button class="ok" id="bkd" style="border:0;color:#fff;padding:11px 20px;border-radius:6px">Download backup</button><div style="margin-top:22px"><label style="margin-top:0">Restore from a backup file</label><input type="file" id="bkf" accept=".json"><small id="bks" style="display:block;margin-top:6px"></small></div></div>'}
+var BK=['rp_srv_v1','rp_msgs_v1','rp_money_v1','crm_contacts_v1','crm_logs_v1','crm_resellers_v1','rp_channels_v1','rp_packages_v1','rp_plans_v1','rp_credlog_v1'];
+function settingsHtml(){return '<div class="dc" style="margin-bottom:20px"><div class="dt"><span>M3U server</span></div><p style="margin-top:0">Every new line gets its playlist link automatically:<br><code style="word-break:break-all">'+esc(srv())+'/playlist/USERNAME/PASSWORD/m3u</code></p><label style="margin-top:0">Server address (with port)</label><input id="srvi" value="'+esc(srv())+'" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="http://server:8080"><button class="ok" id="srvs" style="border:0;color:#fff;padding:11px 20px;border-radius:6px;margin-top:10px">Save server</button><small id="srvm" style="display:block;margin-top:6px"></small></div><div class="dc"><div class="dt"><span>Backup</span></div><p style="margin-top:0">Save all your data (lines, MAG devices, resellers, channels, bouquets, packages and credit history) to a file. Keep a copy somewhere safe.</p><button class="ok" id="bkd" style="border:0;color:#fff;padding:11px 20px;border-radius:6px">Download backup</button><div style="margin-top:22px"><label style="margin-top:0">Restore from a backup file</label><input type="file" id="bkf" accept=".json"><small id="bks" style="display:block;margin-top:6px"></small></div></div>'}
 function bindSettings(){
+  $('srvs').onclick=function(){var v=$('srvi').value.trim().replace(/\/+$/,'');if(!/^https?:\/\/[^\s\/]+$/i.test(v)){$('srvm').textContent='Enter it like http://server:8080';$('srvm').style.color='var(--bad)';return}
+    var o=srv();try{localStorage.setItem(SRVK,v)}catch(e){}var n=0;data.forEach(function(r){if(!r.mag&&r.playlist&&r.playlist.indexOf(o+'/playlist/')===0){r.playlist=plUrl(r);n++}});save();log('M3U server changed: '+v);show('settings','Settings');$('srvm').textContent='Saved. '+n+' playlist links updated.';$('srvm').style.color='var(--ok)'};
   $('bkd').onclick=function(){var o={};BK.forEach(function(k){try{var v=localStorage.getItem(k);if(v!=null)o[k]=v}catch(e){}});var txt=JSON.stringify({app:'resellers-panel',time:new Date().toISOString(),state:o}),nm='panel-backup-'+new Date().toISOString().slice(0,10)+'.json';
     if(!(window.claude&&claude.use)){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download=nm;a.click();return}
     claude.use('downloads').then(function(d){if(d)return d.save({filename:nm,data:txt})}).catch(function(){})};
@@ -908,7 +915,7 @@ function trial(){
   var n=['Nikola','Sofia','Boris','Mila','Stefan','Tanja'],s=['Ristovski','Jovanovska','Iliev','Trajkovska','Naumov','Georgieva'];
   var id=data.reduce(function(m,r){return Math.max(m,r.id)},1000)+1,nm=n[Math.floor(Math.random()*6)]+' '+s[Math.floor(Math.random()*6)];
   var ph='07'+Math.floor(Math.random()*9)+' '+(100+Math.floor(Math.random()*900))+' '+(100+Math.floor(Math.random()*900));
-  var tp=plans.filter(function(p){return p.trial})[0];data.push({owner:ctx,id:id,name:nm,status:'active',next:'',last:'',note:'',username:rnd(10),password:rnd(10),plan:tp?tp.id:0,maxc:tp?tp.conns:1,exp:dtl(addDur(new Date(),tp||{hours:52}))});
+  var tp=plans.filter(function(p){return p.trial})[0];data.push({owner:ctx,id:id,name:nm,status:'active',next:'',last:'',note:'',username:rnd(10),password:rnd(10),plan:tp?tp.id:0,maxc:tp?tp.conns:1,exp:dtl(addDur(new Date(),tp||{hours:52}))});var nl=data[data.length-1];nl.playlist=plUrl(nl);
   log('Trial contact generated: '+nm);save();render();
 }
 $('nav').onclick=function(e){
