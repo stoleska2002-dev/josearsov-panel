@@ -110,6 +110,12 @@ input,select,textarea{background:#f1f9f3}
 header{background:#e9f5ec}
 nav a.cur{background:#dcefe1}
 .tb .c{background:#c6e3cf}
+
+/* ---- modals above header, scrollable, close button always reachable ---- */
+.modal{z-index:60;overflow-y:auto;-webkit-overflow-scrolling:touch;align-items:flex-start;padding:calc(16px + env(safe-area-inset-top,0px)) 12px calc(24px + env(safe-area-inset-bottom,0px))}
+.modal>.box{margin:auto}
+#m .box>div:first-child,.mh{position:sticky;top:0;z-index:5;background:var(--card)}
+#m .box>div:first-child{padding:6px 0 10px;margin-top:-6px}
 </style>
 </head>
 <body>
