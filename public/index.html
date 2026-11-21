@@ -701,7 +701,7 @@ function globe(cv,pts,note){
       var cs=getComputedStyle(document.body),W=460,dpr=window.devicePixelRatio||1;cv.width=W*dpr;cv.height=W*dpr;var g=cv.getContext('2d');g.scale(dpr,dpr);
       var proj=d3.geoOrthographic().scale(W/2-6).translate([W/2,W/2]).clipAngle(90),path=d3.geoPath(proj,g),land=world?topojson.feature(world,world.objects.countries):null,grat=d3.geoGraticule10(),sph={type:'Sphere'};
       var rot=[-10,-20],drag=false,lx=0,ly=0,t0=0;if(pts.length){rot=[-pts[0].lon,-Math.max(-50,Math.min(50,pts[0].lat))]}
-      var cOcean='#1c3b57',cLand='#3d8b7a',cLine='rgba(255,255,255,.12)',cDot='#ffd24a';
+      var cOcean='#1f4d3a',cLand='#7cc796',cLine='rgba(255,255,255,.12)',cDot='#ffd24a';
       function draw(){g.clearRect(0,0,W,W);proj.rotate(rot);
         g.beginPath();path(sph);g.fillStyle=cOcean;g.fill();
         g.beginPath();path(grat);g.strokeStyle=cLine;g.lineWidth=.5;g.stroke();
@@ -731,7 +731,8 @@ var PAL=['#16a34a','#111111','#ffb703','#16c79a','#3b82f6','#8d99ae'],erng='d',s
 function gauge(p,l,t){var c=251.3,d=c*Math.min(100,Math.max(0,p))/100;return '<div style="text-align:center"><small style="color:var(--head);display:block;margin-bottom:2px">'+l+'</small><svg viewBox="0 0 100 100" width="108" height="108" style="display:block;margin:auto"><circle cx="50" cy="50" r="40" fill="none" stroke="#eeeeee" stroke-width="5"/><circle cx="50" cy="50" r="40" fill="none" stroke="#16a34a" stroke-width="5" stroke-linecap="round" stroke-dasharray="'+d+' '+c+'" transform="rotate(-90 50 50)"/><text x="50" y="57" text-anchor="middle" font-size="19" fill="currentColor" style="color:var(--head)" font-family="Poppins,sans-serif">'+(t||Math.round(p)+'%')+'</text></svg></div>'}
 function dcard(id,t){return '<div class="dc" id="'+id+'"><div class="dt"><span>'+t+'</span><span class="dx"></span></div><div class="db"></div></div>'}
 var TI={add:'<svg viewBox="0 0 48 48" width="46" height="46" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="24" cy="14" r="8"/><path d="M8 42c0-9 7-14 16-14s16 5 16 14z"/></svg>',addr:'<svg viewBox="0 0 48 48" width="46" height="46" fill="none" stroke="#16a34a" stroke-width="2"><path d="M4 8h7l5 22h20l5-16H13"/><circle cx="19" cy="38" r="3"/><circle cx="34" cy="38" r="3"/></svg>',settings:'<svg viewBox="0 0 48 48" width="46" height="46" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="24" cy="24" r="7"/><path d="M24 4v6M24 38v6M4 24h6M38 24h6M10 10l4 4M34 34l4 4M38 10l-4 4M14 34l-4 4"/></svg>'};
-function dashHtml(){return '<div class="g2">'+dcard('d-sys','System info')+dcard('d-mag','MAG subscribers')+'</div>'+dcard('d-earn','Sales')+'<div class="g2" style="margin-top:20px">'+dcard('d-map','Live map')+'<div>'+dcard('d-pie','Live graph')+'<div class="tiles"><button class="tile" data-go="add">'+TI.add+'<span>Add new<br>line</span></button><button class="tile" data-go="addr">'+TI.addr+'<span>Add new<br>reseller</span></button><button class="tile" data-go="settings">'+TI.settings+'<span><br>Settings</span></button></div></div></div>'}
+function greet(){var h=new Date().getHours(),w=h<12?'Good morning':h<18?'Good afternoon':'Good evening',n=ctx?me().name:'Jose';return w+', '+n}
+function dashHtml(){return '<div class="tiles" style="margin:0 0 20px"><button class="tile" data-go="add">'+TI.add+'<span>Add new<br>line</span></button><button class="tile" data-go="addr">'+TI.addr+'<span>Add new<br>reseller</span></button><button class="tile" data-go="settings">'+TI.settings+'<span><br>Settings</span></button></div>'+dcard('d-sys','System info')+'<div style="height:20px"></div>'+dcard('d-earn','Sales')+'<div class="g2" style="margin-top:20px">'+dcard('d-map','Live map')+dcard('d-pie','Live graph')+'</div>'}
 function dsec(id,html,x){var e=$(id);if(!e)return;e.querySelector('.db').innerHTML=html;if(x!==undefined)e.querySelector('.dx').innerHTML=x}
 var DEMO='<small style="color:var(--mute);text-transform:none;letter-spacing:0">demo data</small>';
 function dashLoad(){
@@ -769,14 +770,14 @@ function earnDraw(){
   dsec('d-earn','<div style="display:flex;justify-content:flex-end;flex-wrap:wrap;margin:-8px 0 6px">'+tg+'</div><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto"><defs><linearGradient id="eg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+col+'" stop-opacity=".18"/><stop offset="1" stop-color="'+col+'" stop-opacity="0"/></linearGradient></defs>'+g+'<path d="'+area+'" fill="url(#eg)"/><path d="'+path+'" fill="none" stroke="'+col+'" stroke-width="2.5"/>'+dots+xl+'</svg><small>Lines sold and renewed</small>',demo?DEMO:'')}
 // ---- map + pie ----
 function actDraw(ev,demo){
-  var pts=[],seen={};ev.forEach(function(e){if(e.lat==null||e.lon==null)return;var k=e.lat.toFixed(0)+','+e.lon.toFixed(0);if(seen[k])return;seen[k]=1;pts.push({lat:e.lat,lon:e.lon})});
-  dsec('d-map','<canvas id="dmc" style="width:100%;aspect-ratio:2/1"></canvas>',demo?DEMO:'');
-  dotMap($('dmc'),pts);
+  var pts=[],seen={};ev.forEach(function(e){if(e.lat==null||e.lon==null)return;var k=e.lat.toFixed(0)+','+e.lon.toFixed(0);if(seen[k]){seen[k].n++;return}seen[k]={lat:e.lat,lon:e.lon,n:1};pts.push(seen[k])});
+  dsec('d-map','<canvas id="dmc" style="width:100%;max-width:420px;aspect-ratio:1/1;display:block;margin:auto;cursor:grab;touch-action:none"></canvas><div id="dmn" style="font-size:12px;color:var(--mute);text-align:center;margin-top:8px"></div>',demo?DEMO:'');
+  globe($('dmc'),pts,$('dmn'));
   var by={};ev.forEach(function(e){if(!e.country||e.cc==='??')return;by[e.country]=(by[e.country]||0)+(e.n||1)});
   var arr=Object.keys(by).map(function(k){return[k,by[k]]}).sort(function(a,b){return b[1]-a[1]}).slice(0,4),tot=arr.reduce(function(a,x){return a+x[1]},0)||1,a0=-Math.PI/2,sl='';
   arr.forEach(function(x,i){var a1=a0+2*Math.PI*x[1]/tot,big=a1-a0>Math.PI?1:0;sl+=arr.length===1?'<circle cx="60" cy="60" r="52" fill="'+PAL[i]+'"/>':'<path d="M60,60 L'+(60+52*Math.cos(a0))+','+(60+52*Math.sin(a0))+' A52,52 0 '+big+' 1 '+(60+52*Math.cos(a1))+','+(60+52*Math.sin(a1))+' Z" fill="'+PAL[i]+'"/>';a0=a1});
   var lg=arr.map(function(x,i){return '<div style="display:flex;align-items:center;gap:10px;margin:10px 0;font-size:14px"><span style="width:18px;height:18px;border-radius:50%;border:3px solid '+PAL[i]+'"></span><span style="flex:1">'+esc(x[0])+'</span><span style="color:#16c79a">'+(x[1]/tot*100).toFixed(2)+'%</span></div>'}).join('');
-  dsec('d-pie',arr.length?'<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap"><svg viewBox="0 0 120 120" width="130" height="130">'+sl+'</svg><div style="flex:1;min-width:150px">'+lg+'</div></div>':'<div class="empty" style="padding:20px">No logins yet.</div>',demo?DEMO:'')}
+  dsec('d-pie',arr.length?'<div>'+lg+'</div>':'<div class="empty" style="padding:20px">No logins yet.</div>',demo?DEMO:'')}
 function dotMap(cv,pts){ovLibs(function(ok){
   if(!ok||!cv.isConnected)return;
   var go=function(world){
@@ -806,7 +807,7 @@ function show(v,title){
   var c=v==='contacts';
   document.querySelector('.top').hidden=!c;$('v1').hidden=!c;$('v2').hidden=c;
   if(c)return;
-  var h='<h1 style="margin:12px 0 20px">'+esc(title)+'</h1>';
+  var h='<h1 style="margin:12px 0 20px">'+esc(v==='dash'?greet():title)+'</h1>';
   if(v==='credits')h+=credTable();else if(v==='plans')h+=plTable();else if(v==='packages')h+=pkTable();else if(v==='channels')h+=chTable();else if(v==='resellers')h+=resTable();else if(v==='dash')h+=dashHtml();else if(v==='settings')h+=settingsHtml();
   else if(v==='overview')h+='<div id="ov"></div>';
   else if(v==='logs')h+=logs.length?logs.map(function(l){return '<div style="padding:10px 0;border-bottom:1px solid var(--line)">'+esc(l.t)+'<small style="display:block;color:var(--mute)">'+esc(l.d)+'</small></div>'}).join(''):'<div class="empty">No activity yet.</div>';
