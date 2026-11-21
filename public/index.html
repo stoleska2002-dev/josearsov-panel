@@ -214,6 +214,7 @@ nav a.cur{background:#dcefe1}
   <h2 id="plh">New package</h2>
   <label>Package name</label><input id="pln">
   <label>Duration (days)</label><input id="pld" type="number" min="1">
+  <label>Or duration in hours (overrides days)</label><input id="plhr" type="number" min="1" placeholder="e.g. 52 for trial">
   <label>Cost (credits)</label><input id="plc" type="number" min="0">
   <label>Price for client (€)</label><input id="plp" type="number" min="0" step="0.01" inputmode="decimal">
   <label>Max connections</label><input id="plm" type="number" min="1">
@@ -508,11 +509,14 @@ var plans=(function(){try{var s=JSON.parse(localStorage.getItem(LKP));if(s)retur
   {id:2,name:'Full - 1 month',days:30,cost:1,conns:1,trial:false},
   {id:3,name:'Full - 12 months',days:365,cost:10,conns:2,trial:false}]})();
 function savePl(){try{localStorage.setItem(LKP,JSON.stringify(plans))}catch(e){}}
+function durMs(p){return p&&p.hours?p.hours*36e5:(p?p.days:30)*864e5}
+function addDur(d,p){return new Date(d.getTime()+durMs(p))}
+function durLabel(p){return p.hours?p.hours+' Hours':p.days+' Days'}
 function priceOf(p){if(!p||p.trial)return 0;if(p.price!=null&&p.price!=='')return +p.price||0;var d=p.days||0;return d<=31?10:d<=92?20:d<=183?55:70}
 (function(){var ch=false,nid=function(){return plans.reduce(function(m,x){return Math.max(m,x.id)},0)+1};
   if(!plans.some(function(x){return !x.trial&&x.days===90})){plans.push({id:nid(),name:'Full - 3 months',days:90,cost:3,conns:1,trial:false,price:20});ch=true}
   if(!plans.some(function(x){return !x.trial&&x.days===180})){plans.push({id:nid(),name:'Full - 6 months',days:180,cost:6,conns:1,trial:false,price:55});ch=true}
-  plans.forEach(function(x){if(x.price==null){x.price=priceOf(x);ch=true}});
+  plans.forEach(function(x){if(x.price==null){x.price=priceOf(x);ch=true}if(x.trial&&!x.trial52){x.hours=52;x.days=3;x.name='Trial - 52 hours';x.trial52=1;ch=true}});
   plans.sort(function(a,b){return (a.trial?0:1)-(b.trial?0:1)||a.days-b.days});
   if(ch)savePl()})();
 function earn(v,what){v=+v||0;if(!v)return;var k=mkey(new Date());money[k]=(+money[k]||0)+v;saveMoney();log('Money collected: '+eur(v)+(what?' ('+what+')':''))}
@@ -523,7 +527,7 @@ function rnd(n){var c='abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 function curPlan(){return plans.filter(function(p){return p.id===+$('fplan').value})[0]}
 function curCost(){var p=curPlan();return editId?0:(p?p.cost:0)}
 function planOpts(sel){var pl=plans.filter(function(p){return !trialM||p.trial});if(!pl.length)pl=plans;$('fplan').innerHTML=pl.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+'</option>'}).join('');if(sel)$('fplan').value=sel}
-function planFill(setExp){var p=curPlan();if(!p){$('fcost').value='';$('fdur').value='';return}$('fcost').value=p.cost;$('fdur').value=p.days+' Days';if(setExp){$('fmax').value=p.conns;var d=new Date();d.setDate(d.getDate()+p.days);$('fexp').value=dtl(d)}}
+function planFill(setExp){var p=curPlan();if(!p){$('fcost').value='';$('fdur').value='';return}$('fcost').value=p.cost;$('fdur').value=durLabel(p);if(setExp){$('fmax').value=p.conns;$('fexp').value=dtl(addDur(new Date(),p))}}
 function pwScore(v){var s=0;if(v.length>=8)s++;if(v.length>=12)s++;if(/[a-z]/.test(v)&&/[A-Z]/.test(v))s++;if(/\d/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;return s}
 function pwShow(){var v=$('fpw').value,s=v?pwScore(v):0,t=['','weak','weak','mediocre','good','strong'][s]||'',c=s<3?'var(--bad)':s===3?'var(--warn)':'var(--ok)';$('pwm').style.width=(s*20)+'%';$('pwm').style.background=c;$('pwt').textContent=t;$('pwt').style.color=c}
 function credSummary(){var c=curCost();$('cr1').textContent=ctx?me().credits:'—';$('cr2').textContent=c;$('cr3').textContent=ctx?me().credits-c:'—'}
@@ -542,18 +546,18 @@ $('mprev').onclick=function(){setStep(step-1)};
 document.querySelector('.tabs').onclick=function(e){var b=e.target.closest('button');if(b)setStep(+b.dataset.t)};
 function plTable(){
   if(!plans.length)return '<div class="empty">No packages yet. Use Add Package.</div>';
-  return '<table><thead><tr><th>ID</th><th>Name</th><th>Duration</th><th>Cost</th><th>Price</th><th>Max connections</th><th>Trial</th><th></th></tr></thead><tbody>'+plans.map(function(p){return '<tr><td>'+p.id+'</td><td>'+esc(p.name)+'</td><td>'+p.days+' Days</td><td><span class="badge">'+p.cost+'</span></td><td>'+eur(priceOf(p))+'</td><td><span class="badge">'+p.conns+'</span></td><td>'+(p.trial?'Yes':'')+'</td><td><div class="act"><button data-ple="'+p.id+'" title="Edit">&#9998;</button><button data-pld="'+p.id+'" title="Delete">&#128465;</button></div></td></tr>'}).join('')+'</tbody></table>';
+  return '<table><thead><tr><th>ID</th><th>Name</th><th>Duration</th><th>Cost</th><th>Price</th><th>Max connections</th><th>Trial</th><th></th></tr></thead><tbody>'+plans.map(function(p){return '<tr><td>'+p.id+'</td><td>'+esc(p.name)+'</td><td>'+durLabel(p)+'</td><td><span class="badge">'+p.cost+'</span></td><td>'+eur(priceOf(p))+'</td><td><span class="badge">'+p.conns+'</span></td><td>'+(p.trial?'Yes':'')+'</td><td><div class="act"><button data-ple="'+p.id+'" title="Edit">&#9998;</button><button data-pld="'+p.id+'" title="Delete">&#128465;</button></div></td></tr>'}).join('')+'</tbody></table>';
 }
 function openL(id){lEdit=id;var p=plans.filter(function(x){return x.id===id})[0]||{};
   $('plh').textContent=id?'Edit package':'New package';
-  $('pln').value=p.name||'';$('pld').value=p.days||30;$('plc').value=p.cost==null?1:p.cost;$('plm').value=p.conns||1;$('plt').checked=!!p.trial;$('plp').value=id?priceOf(p):'';
+  $('pln').value=p.name||'';$('pld').value=p.days||30;$('plhr').value=p.hours||'';$('plc').value=p.cost==null?1:p.cost;$('plm').value=p.conns||1;$('plt').checked=!!p.trial;$('plp').value=id?priceOf(p):'';
   $('plmod').classList.add('show');$('pln').focus()}
 function delL(id){var p=plans.filter(function(x){return x.id===id})[0];plans=plans.filter(function(x){return x.id!==id});log('Package deleted: '+p.name);savePl();show('plans','Packages')}
 $('plx').onclick=function(){$('plmod').classList.remove('show')};
 $('plmod').onclick=function(e){if(e.target===$('plmod'))$('plmod').classList.remove('show')};
 $('pls').onclick=function(){
   var n=$('pln').value.trim();if(!n){$('pln').focus();return}
-  var o={name:n,days:Math.max(1,parseInt($('pld').value,10)||1),cost:Math.max(0,parseInt($('plc').value,10)||0),conns:Math.max(1,parseInt($('plm').value,10)||1),trial:$('plt').checked,price:$('plp').value===''?null:Math.max(0,parseFloat($('plp').value)||0)};if(o.price==null)o.price=priceOf(o);
+  var o={name:n,days:Math.max(1,parseInt($('pld').value,10)||1),cost:Math.max(0,parseInt($('plc').value,10)||0),conns:Math.max(1,parseInt($('plm').value,10)||1),hours:parseInt($('plhr').value,10)||0,trial:$('plt').checked,price:$('plp').value===''?null:Math.max(0,parseFloat($('plp').value)||0)};if(o.price==null)o.price=priceOf(o);
   if(lEdit){plans=plans.map(function(x){return x.id===lEdit?Object.assign({},x,o):x});log('Package edited: '+n)}
   else{var id=plans.reduce(function(m,x){return Math.max(m,x.id)},0)+1;plans.push(Object.assign({id:id},o));log('Package added: '+n)}
   savePl();$('plmod').classList.remove('show');if(!$('v2').hidden)show('plans','Packages');
@@ -566,10 +570,10 @@ function renew(id){
   var r=data.filter(function(x){return x.id===id})[0],p=plans.filter(function(x){return x.id===r.plan})[0];
   if(!p){alert('This line has no package. Edit it and choose a package first.');return}
   if(ctx&&me().credits<p.cost){alert('Not enough credits. Renewal costs '+p.cost+'.');return}
-  askDel('Renew '+(r.username||r.name)+' for '+p.days+' days ('+p.cost+' credits)?',function(){doRenew(r,p)},'Renew');
+  askDel('Renew '+(r.username||r.name)+' for '+durLabel(p).toLowerCase()+' ('+p.cost+' credits)?',function(){doRenew(r,p)},'Renew');
 }
 function doRenew(r,p){
-  var base=r.exp&&new Date(r.exp)>new Date()?new Date(r.exp):new Date();base.setDate(base.getDate()+p.days);
+  var base=r.exp&&new Date(r.exp)>new Date()?new Date(r.exp):new Date();base=addDur(base,p);
   r.exp=dtl(base);r.last=new Date().toISOString().slice(0,10);
   if(ctx){me().credits-=p.cost;saveR()}
   credLog.unshift({d:new Date().toLocaleString('en-GB'),t:'Renew: '+r.name+' ('+p.name+')',a:-p.cost,w:ownerName(ctx)});saveCL();
@@ -615,7 +619,7 @@ $('fbb').onclick=function(){
   if(!add.length){$('fbs').textContent='Nothing new to add ('+skip+' skipped).';$('fbs').style.color='var(--bad)';return}
   var cost=(p?p.cost:0)*add.length;if(ctx&&me().credits<cost){alert('Not enough credits. '+add.length+' lines cost '+cost+'.');return}
   if(ctx){me().credits-=cost;saveR()}
-  var id=data.reduce(function(m,r){return Math.max(m,r.id)},1000),d=new Date();d.setDate(d.getDate()+(p?p.days:30));var ex=dtl(d),pk=getPk(),ch=getCh();
+  var id=data.reduce(function(m,r){return Math.max(m,r.id)},1000),d=addDur(new Date(),p);var ex=dtl(d),pk=getPk(),ch=getCh();
   add.forEach(function(r){data.push({id:++id,name:r.p,username:r.u,password:r.p,status:'active',next:'',last:'',note:'',playlist:r.l,chs:ch,pks:pk,plan:p?p.id:0,maxc:parseInt($('fmax').value,10)||1,exp:ex,owner:ctx,mag:false})});
   earn(priceOf(p)*add.length,add.length+' lines');log('Bulk lines added: '+add.length);save();closeM();render();alert(add.length+' lines added'+(skip?', '+skip+' skipped (duplicate or bad link).':'.'));
 };
@@ -849,7 +853,7 @@ function trial(){
   var n=['Nikola','Sofia','Boris','Mila','Stefan','Tanja'],s=['Ristovski','Jovanovska','Iliev','Trajkovska','Naumov','Georgieva'];
   var id=data.reduce(function(m,r){return Math.max(m,r.id)},1000)+1,nm=n[Math.floor(Math.random()*6)]+' '+s[Math.floor(Math.random()*6)];
   var ph='07'+Math.floor(Math.random()*9)+' '+(100+Math.floor(Math.random()*900))+' '+(100+Math.floor(Math.random()*900));
-  var tp=plans.filter(function(p){return p.trial})[0];data.push({owner:ctx,id:id,name:nm,status:'active',next:'',last:'',note:'',username:rnd(10),password:rnd(10),plan:tp?tp.id:0,maxc:tp?tp.conns:1,exp:new Date(Date.now()+(tp?tp.days:1)*864e5).toISOString().slice(0,16)});
+  var tp=plans.filter(function(p){return p.trial})[0];data.push({owner:ctx,id:id,name:nm,status:'active',next:'',last:'',note:'',username:rnd(10),password:rnd(10),plan:tp?tp.id:0,maxc:tp?tp.conns:1,exp:dtl(addDur(new Date(),tp||{hours:52}))});
   log('Trial contact generated: '+nm);save();render();
 }
 $('nav').onclick=function(e){
