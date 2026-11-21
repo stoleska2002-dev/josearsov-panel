@@ -195,10 +195,10 @@ input:focus,select:focus,textarea:focus{outline:2px solid #16a34a;outline-offset
   <label>Allowed IP Addresses</label>
   <div style="display:flex"><input id="fipi" placeholder="e.g. 85.10.20.30" autocapitalize="off" autocorrect="off"><button type="button" id="fipa" style="margin:0;width:52px;border:0;color:#fff;background:#16a34a">+</button><button type="button" id="fipx" style="margin:0;width:52px;border:0;color:#fff;background:#e06e48">&#10005;</button></div>
   <div id="fipl" style="margin:8px 0;min-height:30px;border:1px solid var(--line);border-radius:20px;padding:6px 14px"></div>
-  <label>Allowed User-Agents</label>
+  <div id="wua"><label>Allowed User-Agents</label>
   <div style="display:flex"><input id="fuai" placeholder="e.g. IPTVSmarters" autocapitalize="off" autocorrect="off"><button type="button" id="fuaa" style="margin:0;width:52px;border:0;color:#fff;background:#16a34a">+</button><button type="button" id="fuax" style="margin:0;width:52px;border:0;color:#fff;background:#e06e48">&#10005;</button></div>
   <div id="fual" style="margin:8px 0;min-height:30px;border:1px solid var(--line);border-radius:20px;padding:6px 14px"></div>
-  <label>Bypass UA Restrictions</label><label class="sw"><input type="checkbox" id="fbua"><span></span></label>
+  <label>Bypass UA Restrictions</label><label class="sw"><input type="checkbox" id="fbua"><span></span></label></div>
   <label>Lock to ISP</label><label class="sw"><input type="checkbox" id="flisp"><span></span></label>
   <label>Current ISP</label>
   <div style="display:flex"><input id="fisp" readonly style="background:var(--row)"><button type="button" id="fispx" style="margin:0;width:52px;border:0;color:#fff;background:#e06e48">&#10005;</button></div>
@@ -217,7 +217,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid #16a34a;outline-offset
   <label>Extra channels</label><div id="fch" style="max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:8px"></div>
   </div></div>
   <div class="pane" id="p3" hidden>
-    <table style="min-width:0;text-align:center"><thead><tr><th>Total credits</th><th>Purchase cost</th><th>Remaining credits</th></tr></thead><tbody><tr style="background:var(--row)"><td id="cr1"></td><td id="cr2"></td><td id="cr3"></td></tr></tbody></table>
+    <div id="crw" hidden style="background:#fbe3dc;border:1px solid #f3c2b3;color:#9a3b22;border-radius:8px;padding:12px 14px;margin-bottom:12px">&#8856; You do not have enough credits to complete this transaction!</div><table style="min-width:0;text-align:center"><thead><tr><th>Total credits</th><th>Purchase cost</th><th>Remaining credits</th></tr></thead><tbody><tr style="background:var(--row)"><td id="cr1"></td><td id="cr2"></td><td id="cr3"></td></tr></tbody></table>
     <label>Bouquets</label><div id="fpk" style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:8px"></div>
   </div>
   <div class="btns"><button class="no" id="mc">Cancel</button><button class="no" id="mprev" hidden>Previous</button><button class="ok" id="mnext">Next</button><button class="ok" id="ms" hidden>Purchase</button></div>
@@ -336,7 +336,7 @@ function openM(id,trial,mag){
   magM=!!(mag||r.mag);trialM=!!trial&&!id;var T=magM?'MAG Device':'Line';
   $('mt').textContent=id?'Edit '+(magM?'MAG device':'line'):trialM?'Add Trial '+T:'Add '+T;
   $('fn').value=r.name||'';$('fst').value=r.status==='inactive'?'inactive':'active';$('fd').value=r.next||'';$('fnote').value=r.note||'';$('fpl').value=r.playlist||'';buildCh(r.chs||[]);buildPk(r.pks||[]);openW(r,id,trial);
-  $('fpl0').value='';$('fbulk').value='';$('fbs').textContent='';$('fem').value=r.email||'';$('fpin').value=r.pin||'0000';$('fmac').value=r.mac||'00:1A:79:';ipsCur=(r.ips||[]).slice();ipsDraw();uasCur=(r.uas||[]).slice();uasDraw();$('fbua').checked=!!r.bypassUa;$('flisp').checked=!!r.lockIsp;$('fisp').value=r.isp||'';$('wextra').hidden=$('wst').hidden=trialM;
+  $('fpl0').value='';$('fbulk').value='';$('fbs').textContent='';$('fem').value=r.email||'';$('fpin').value=r.pin||'0000';$('fmac').value=r.mac||'00:1A:79:';ipsCur=(r.ips||[]).slice();ipsDraw();uasCur=(r.uas||[]).slice();uasDraw();$('fbua').checked=!!r.bypassUa;$('flisp').checked=!!r.lockIsp;$('fisp').value=r.isp||'';$('wextra').hidden=$('wst').hidden=trialM||(magM&&!id);$('wua').hidden=$('wmax').hidden=magM;if(magM&&!id)$('flisp').checked=true;
   $('wlink').hidden=magM||!!id||trialM;$('fbulk').hidden=$('fbb').hidden=magM||!!id||trialM;$('wmac').hidden=!magM;$('wpin').hidden=!magM;$('wus').hidden=magM||trialM;$('wpw').hidden=magM;$('wem').hidden=!trialM;
   $('ims').textContent='';$('m').classList.add('show');(magM?$('fmac'):trialM?$('fpw'):$('fus')).focus();
 }
@@ -549,11 +549,12 @@ function planOpts(sel){var pl=plans.filter(function(p){return !trialM||p.trial})
 function planFill(setExp){var p=curPlan();if(!p){$('fcost').value='';$('fdur').value='';return}$('fcost').value=p.cost;$('fdur').value=durLabel(p);if(setExp){$('fmax').value=p.conns;$('fexp').value=dtl(addDur(new Date(),p))}}
 function pwScore(v){var s=0;if(v.length>=8)s++;if(v.length>=12)s++;if(/[a-z]/.test(v)&&/[A-Z]/.test(v))s++;if(/\d/.test(v))s++;if(/[^A-Za-z0-9]/.test(v))s++;return s}
 function pwShow(){var v=$('fpw').value,s=v?pwScore(v):0,t=['','weak','weak','mediocre','good','strong'][s]||'',c=s<3?'var(--bad)':s===3?'var(--warn)':'var(--ok)';$('pwm').style.width=(s*20)+'%';$('pwm').style.background=c;$('pwt').textContent=t;$('pwt').style.color=c}
-function credSummary(){var c=curCost();$('cr1').textContent=ctx?me().credits:'—';$('cr2').textContent=c;$('cr3').textContent=ctx?me().credits-c:'—'}
+function credSummary(){var c=curCost();$('cr1').textContent=ctx?me().credits:'—';$('cr2').textContent=c;$('cr3').textContent=ctx?me().credits-c:'—';var lack=!!ctx&&me().credits<c;$('crw').hidden=!lack;$('ms').disabled=lack;$('ms').style.opacity=lack?.5:''}
 function setStep(n){step=n;['p1','p2','p3'].forEach(function(id,i){$(id).hidden=(i+1)!==n});Array.prototype.forEach.call(document.querySelectorAll('.tabs button'),function(b){b.classList.toggle('on',+b.dataset.t===n)});$('mprev').hidden=n===1;$('mnext').hidden=n===3;$('ms').hidden=n!==3;$('ms').textContent=editId?'Save':'Purchase';if(n===3)credSummary()}
 function openW(r,id,trial){
-  var tp=plans.filter(function(p){return p.trial})[0];
-  planOpts(r.plan||(trial&&tp?tp.id:0));
+  var tp=plans.filter(function(p){return p.trial})[0],fp=plans.filter(function(p){return !p.trial})[0];
+  planOpts(r.plan||(trial?(tp?tp.id:0):(fp?fp.id:0)));
+  if(!id)Array.prototype.slice.call($('fplan').options).forEach(function(o){var p=plans.filter(function(x){return x.id===+o.value})[0];if(p&&!!p.trial!==!!trial)o.remove()});
   $('fus').value=r.username||'';$('fpw').value=r.password||'';pwShow();
   if(id){planFill(false);$('fmax').value=r.maxc||1;$('fexp').value=r.exp||''}else{planFill(true)}
   setStep(1);
