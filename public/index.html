@@ -116,6 +116,11 @@ nav a.cur{background:#dcefe1}
 .modal>.box{margin:auto}
 #m .box>div:first-child,.mh{position:sticky;top:0;z-index:5;background:var(--card)}
 #m .box>div:first-child{padding:6px 0 10px;margin-top:-6px}
+
+.sw{position:relative;display:inline-block;width:64px;height:34px;margin:4px 0 6px}.sw input{opacity:0;width:0;height:0;position:absolute}.sw span{position:absolute;inset:0;background:var(--card);border:1px solid var(--line);border-radius:34px;transition:.2s;cursor:pointer}.sw span:before{content:"";position:absolute;width:28px;height:28px;left:2px;top:2px;background:#fff;border-radius:50%;box-shadow:0 1px 4px rgba(20,90,50,.3);transition:.2s}.sw input:checked+span{background:#16a34a;border-color:#16a34a}.sw input:checked+span:before{transform:translateX(30px)}
+#fpk table{min-width:0;width:100%}#fpk td,#fpk th{padding:12px 8px;text-align:left}
+#p3>table{width:100%;table-layout:fixed}#p3>table th{white-space:normal;font-size:12px;padding:8px 4px}
+input:focus,select:focus,textarea:focus{outline:2px solid #16a34a;outline-offset:0;border-color:#16a34a}
 </style>
 </head>
 <body>
@@ -186,11 +191,19 @@ nav a.cur{background:#dcefe1}
   <div id="wem" hidden><label>Contact Email</label><input id="fem" type="email" autocapitalize="off"></div>
   <label>Reseller Notes</label><textarea id="fnote" rows="4"></textarea>
   </div><div class="pane" id="p2" hidden>
-  <label>Status</label><select id="fst"><option value="active">Active</option><option value="inactive">Banned</option></select>
+  <div id="wst"><label>Status</label><select id="fst"><option value="active">Active</option><option value="inactive">Banned</option></select></div>
   <label>Allowed IP Addresses</label>
-  <div style="display:flex"><input id="fipi" placeholder="e.g. 85.10.20.30" autocapitalize="off" autocorrect="off"><button type="button" id="fipa" style="margin:0;width:52px;border:0;color:#fff;background:#5b87d6">+</button><button type="button" id="fipx" style="margin:0;width:52px;border:0;color:#fff;background:#e06e48">&#10005;</button></div>
+  <div style="display:flex"><input id="fipi" placeholder="e.g. 85.10.20.30" autocapitalize="off" autocorrect="off"><button type="button" id="fipa" style="margin:0;width:52px;border:0;color:#fff;background:#16a34a">+</button><button type="button" id="fipx" style="margin:0;width:52px;border:0;color:#fff;background:#e06e48">&#10005;</button></div>
   <div id="fipl" style="margin:8px 0;min-height:30px;border:1px solid var(--line);border-radius:20px;padding:6px 14px"></div>
-  <small>If you add addresses, this line works only from them. Leave empty for no limit.</small>
+  <label>Allowed User-Agents</label>
+  <div style="display:flex"><input id="fuai" placeholder="e.g. IPTVSmarters" autocapitalize="off" autocorrect="off"><button type="button" id="fuaa" style="margin:0;width:52px;border:0;color:#fff;background:#16a34a">+</button><button type="button" id="fuax" style="margin:0;width:52px;border:0;color:#fff;background:#e06e48">&#10005;</button></div>
+  <div id="fual" style="margin:8px 0;min-height:30px;border:1px solid var(--line);border-radius:20px;padding:6px 14px"></div>
+  <label>Bypass UA Restrictions</label><label class="sw"><input type="checkbox" id="fbua"><span></span></label>
+  <label>Lock to ISP</label><label class="sw"><input type="checkbox" id="flisp"><span></span></label>
+  <label>Current ISP</label>
+  <div style="display:flex"><input id="fisp" readonly style="background:var(--row)"><button type="button" id="fispx" style="margin:0;width:52px;border:0;color:#fff;background:#e06e48">&#10005;</button></div>
+  <div id="wextra">
+  <small>If you add IP addresses or user-agents, this line works only from them. Leave empty for no limit.</small>
   <label>Next contact (date)</label><input id="fd" type="date">
   <label>Playlist URL (M3U)</label><input id="fpl" placeholder="http://your-server:8080/playlist/username/password/m3u">
   <label>Import M3U list</label>
@@ -202,7 +215,7 @@ nav a.cur{background:#dcefe1}
     <small id="ims" style="display:block;margin-top:6px"></small>
   </div>
   <label>Extra channels</label><div id="fch" style="max-height:150px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:8px"></div>
-  </div>
+  </div></div>
   <div class="pane" id="p3" hidden>
     <table style="min-width:0;text-align:center"><thead><tr><th>Total credits</th><th>Purchase cost</th><th>Remaining credits</th></tr></thead><tbody><tr style="background:var(--row)"><td id="cr1"></td><td id="cr2"></td><td id="cr3"></td></tr></tbody></table>
     <label>Bouquets</label><div id="fpk" style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:8px"></div>
@@ -311,13 +324,19 @@ var magV=false,magM=false,trialM=false,ipsCur=[];
 function ipsDraw(){$('fipl').innerHTML=ipsCur.length?ipsCur.map(function(ip,i){return '<span class="badge" style="margin:2px 4px 2px 0">'+esc(ip)+' <b data-ipx="'+i+'" style="cursor:pointer;margin-left:6px">&#10005;</b></span>'}).join(''):'<small>0 Items</small>'}
 $('fipa').onclick=function(){var v=$('fipi').value.trim();if(/^[0-9a-fA-F:.]{3,45}$/.test(v)&&ipsCur.indexOf(v)<0){ipsCur.push(v);$('fipi').value='';ipsDraw()}};
 $('fipx').onclick=function(){$('fipi').value=''};
+var uasCur=[];
+function uasDraw(){$('fual').innerHTML=uasCur.length?uasCur.map(function(u,i){return '<span class="badge" style="margin:2px 4px 2px 0">'+esc(u)+' <b data-uax="'+i+'" style="cursor:pointer;margin-left:6px">&#10005;</b></span>'}).join(''):'<small>0 Items</small>'}
+$('fuaa').onclick=function(){var v=$('fuai').value.trim();if(v&&uasCur.indexOf(v)<0){uasCur.push(v);$('fuai').value='';uasDraw()}};
+$('fuax').onclick=function(){$('fuai').value=''};
+$('fual').onclick=function(e){var x=e.target.getAttribute('data-uax');if(x!==null){uasCur.splice(+x,1);uasDraw()}};
+$('fispx').onclick=function(){$('fisp').value=''};
 $('fipl').onclick=function(e){var x=e.target.getAttribute('data-ipx');if(x!==null){ipsCur.splice(+x,1);ipsDraw()}};
 function openM(id,trial,mag){
   editId=id;var r=data.filter(function(x){return x.id===id})[0]||{};
   magM=!!(mag||r.mag);trialM=!!trial&&!id;var T=magM?'MAG Device':'Line';
   $('mt').textContent=id?'Edit '+(magM?'MAG device':'line'):trialM?'Add Trial '+T:'Add '+T;
   $('fn').value=r.name||'';$('fst').value=r.status==='inactive'?'inactive':'active';$('fd').value=r.next||'';$('fnote').value=r.note||'';$('fpl').value=r.playlist||'';buildCh(r.chs||[]);buildPk(r.pks||[]);openW(r,id,trial);
-  $('fpl0').value='';$('fbulk').value='';$('fbs').textContent='';$('fem').value=r.email||'';$('fpin').value=r.pin||'0000';$('fmac').value=r.mac||'00:1A:79:';ipsCur=(r.ips||[]).slice();ipsDraw();
+  $('fpl0').value='';$('fbulk').value='';$('fbs').textContent='';$('fem').value=r.email||'';$('fpin').value=r.pin||'0000';$('fmac').value=r.mac||'00:1A:79:';ipsCur=(r.ips||[]).slice();ipsDraw();uasCur=(r.uas||[]).slice();uasDraw();$('fbua').checked=!!r.bypassUa;$('flisp').checked=!!r.lockIsp;$('fisp').value=r.isp||'';$('wextra').hidden=$('wst').hidden=trialM;
   $('wlink').hidden=magM||!!id||trialM;$('fbulk').hidden=$('fbb').hidden=magM||!!id||trialM;$('wmac').hidden=!magM;$('wpin').hidden=!magM;$('wus').hidden=magM||trialM;$('wpw').hidden=magM;$('wem').hidden=!trialM;
   $('ims').textContent='';$('m').classList.add('show');(magM?$('fmac'):trialM?$('fpw'):$('fus')).focus();
 }
@@ -330,7 +349,7 @@ $('ms').onclick=function(){
     if(data.some(function(x){return x.id!==editId&&x.mac===mac})){alert('This MAC address already exists.');setStep(1);return}
     un=mac.replace(/:/g,'').toLowerCase();n=mac;var ex=data.filter(function(x){return x.id===editId})[0];pw0=(ex&&ex.password)||rnd(10)}
   if(data.some(function(x){return x.id!==editId&&String(x.username).toLowerCase()===un.toLowerCase()})){alert('This username already exists.');setStep(1);$('fus').focus();return}
-  var o={mag:magM,mac:mac,pin:$('fpin').value.trim()||'0000',ips:ipsCur.slice(),email:$('wem').hidden?undefined:$('fem').value.trim(),name:n,status:$('fst').value,next:$('fd').value,note:$('fnote').value.trim(),playlist:$('fpl').value.trim(),chs:getCh(),pks:getPk(),plan:+$('fplan').value||0,maxc:parseInt($('fmax').value,10)||1,exp:$('fexp').value,username:un,password:pw0||rnd(10)};
+  var o={mag:magM,mac:mac,pin:$('fpin').value.trim()||'0000',ips:ipsCur.slice(),uas:uasCur.slice(),bypassUa:$('fbua').checked,lockIsp:$('flisp').checked,isp:$('fisp').value,email:$('wem').hidden?undefined:$('fem').value.trim(),name:n,status:$('fst').value,next:$('fd').value,note:$('fnote').value.trim(),playlist:$('fpl').value.trim(),chs:getCh(),pks:getPk(),plan:+$('fplan').value||0,maxc:parseInt($('fmax').value,10)||1,exp:$('fexp').value,username:un,password:pw0||rnd(10)};
   if(o.email===undefined)delete o.email;
   if(editId){data=data.map(function(r){return r.id===editId?Object.assign({},r,o,{last:new Date().toISOString().slice(0,10)}):r})}
   else{var cost=curCost();if(ctx&&me().credits<cost){alert('Not enough credits for this package.');setStep(3);return}if(ctx){me().credits-=cost;saveR()}var id=data.reduce(function(m,r){return Math.max(m,r.id)},1000)+1;data.push(Object.assign({id:id,last:'',owner:ctx},o));if(!trialM)earn(priceOf(curPlan()),n)}
@@ -483,7 +502,7 @@ function savePk(){try{localStorage.setItem(PK,JSON.stringify(packages))}catch(e)
 function allCh(r){var ids=(r.chs||[]).slice();(r.pks||[]).forEach(function(pid){var p=packages.filter(function(x){return x.id===pid})[0];if(p)p.chs.forEach(function(i){if(ids.indexOf(i)<0)ids.push(i)})});return ids}
 function checks(id,items,sel,empty){$(id).innerHTML=items.length?items.map(function(c){return '<label style="display:flex;gap:8px;align-items:center;margin:4px 0;color:var(--head)"><input type="checkbox" value="'+c.id+'" style="width:auto"'+(sel.indexOf(c.id)>-1?' checked':'')+'>'+esc(c.name)+'</label>'}).join(''):'<small>'+empty+'</small>'}
 function vals(id){return Array.prototype.map.call($(id).querySelectorAll('input:checked'),function(i){return +i.value})}
-function buildPk(sel){checks('fpk',packages.map(function(p){return{id:p.id,name:p.name+' ('+p.chs.length+' channels)'}}),sel,'No bouquets yet. Add some under Content.')}
+function buildPk(sel){$('fpk').innerHTML=packages.length?'<table><thead><tr><th style="width:44px"></th><th>Bouquet name</th><th>Streams</th></tr></thead><tbody>'+packages.map(function(p){return '<tr><td><input type="checkbox" value="'+p.id+'" style="width:22px;height:22px;accent-color:#16a34a"'+(sel.indexOf(p.id)>-1?' checked':'')+'></td><td>'+esc(p.name)+'</td><td>'+p.chs.length+'</td></tr>'}).join('')+'</tbody></table>':'<small>No bouquets yet. Add some under Content.</small>'}
 function getPk(){return vals('fpk')}
 function pkTable(){
   if(!packages.length)return '<div class="empty">No bouquets yet. Use Add Bouquet.</div>';
