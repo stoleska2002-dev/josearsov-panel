@@ -1,6 +1,6 @@
 {
-  "name": "TV Panel",
-  "short_name": "TV Panel",
+  "name": "ArsTV",
+  "short_name": "ArsTV",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#dcefe1",
